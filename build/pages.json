@@ -21,6 +21,12 @@
       "nav": "充值支付",
       "title": "Claude 中转站怎么充值：微信、支付宝与对公发票 | KingFlow",
       "desc": "Claude 中转站怎么充值：微信、支付宝与对公发票。KingFlow 国内直连、一个 Key 多模型、人民币充值、倍率透明，改一行 Base URL 即可接入。"
+    },
+    {
+      "slug": "claude-multi-model-key",
+      "nav": "一Key多模型",
+      "title": "一个 API Key 调 Claude/GPT/Gemini：多模型统一接入经验 | KingFlow",
+      "desc": "一个 API Key 调 Claude/GPT/Gemini：多模型统一接入经验。KingFlow 国内直连、一个 Key 多模型、人民币充值、倍率透明，改一行 Base URL 即可接入。"
     }
   ]
 }
