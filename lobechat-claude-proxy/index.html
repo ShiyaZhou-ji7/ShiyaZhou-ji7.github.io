@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>LobeChat 接入 Claude 中转 API 实战（自部署/在线版） | KingFlow</title>
+<meta name="description" content="LobeChat 接入 Claude 中转 API 实战（自部署/在线版）。KingFlow 国内直连、一个 Key 多模型、人民币充值、倍率透明，改一行 Base URL 即可接入。">
+<link rel="canonical" href="https://ShiyaZhou-ji7.github.io/lobechat-claude-proxy/">
+<meta name="robots" content="index,follow">
+<meta property="og:type" content="website">
+<meta property="og:title" content="LobeChat 接入 Claude 中转 API 实战（自部署/在线版） | KingFlow">
+<meta property="og:description" content="LobeChat 接入 Claude 中转 API 实战（自部署/在线版）。KingFlow 国内直连、一个 Key 多模型、人民币充值、倍率透明，改一行 Base URL 即可接入。">
+<meta property="og:url" content="https://ShiyaZhou-ji7.github.io/lobechat-claude-proxy/">
+<meta property="og:site_name" content="KingFlow">
+<meta property="og:image" content="https://www.kingflow.ai/logo.png">
+<meta name="twitter:card" content="summary">
+<link rel="stylesheet" href="/style.css">
+</head>
+<body>
+<header class="site-header">
+  <a class="brand" href="/">King<span>Flow</span></a>
+  <nav class="topnav"><a href="/">首页</a>
+<a href="/lobechat-claude-proxy/" class="active">LobeChat接入</a></nav>
+  <a class="cta" href="https://www.kingflow.ai" rel="noopener">前往官网 →</a>
+</header>
+<main>
+<article class="post">
+<h1>LobeChat 接入 Claude 中转 API 实战（自部署/在线版）</h1>
+<div align="center">
+<h3>KingFlow · 国内直连 AI API 中转</h3>
+<a href="https://www.kingflow.ai"><img src="https://img.shields.io/badge/官网-www.kingflow.ai-FF6B35" alt="KingFlow"></a>
+</div>
+
+<p>折腾 LobeChat 大半年，从 Docker 自部署到直接用官方在线版都趟过一遍，中间换过好几家接口来源。这篇不讲虚的，就把「LobeChat 怎么接一个能在国内直连 Claude 的中转」这件事，从头到尾捋清楚，顺带把自部署和在线版填法上的坑说明白。</p>
+<h2>一、LobeChat 是什么，为什么它特别适合配中转</h2>
+<p>简单说，LobeChat 是一个开源的现代化 AI 对话前端。它不是绑死某一家模型的客户端，而是一个「壳」——你把不同厂商的接口填进去，它统一给你一个好用的聊天界面。我个人觉得它有三个点特别对得上「配中转」这个需求：</p>
+<ul>
+<li><strong>多模型自由切换</strong>：同一个对话框里，可以在 Claude、GPT、DeepSeek、GLM、通义之间随手切。写代码用一个，润色文案用一个，互不干扰。</li>
+<li><strong>插件与函数调用</strong>：LobeChat 的插件体系依赖后端接口支持 Function Calling，联网搜索、跑代码、查资料这些能力，接口那头得跟得上。</li>
+<li><strong>知识库与助手</strong>：可以建多个「助手」，每个绑不同的系统提示词和模型，还能挂本地知识库做检索。一个人当成一整套工作台用。</li>
+</ul>
+<p>问题在于，这三样都要有稳定、低延迟、且模型齐全的接口喂着才玩得转。官方直连在国内经常卡在网络和支付上，所以我最后走了中转这条路——一个 Key、一个地址，把上面这些能力全盘接过来。</p>
+<h2>二、接入步骤：填一个 OpenAI 兼容服务商</h2>
+<p>LobeChat 里接第三方接口最省事的做法，是走「OpenAI 兼容」这一栏。中转把 Claude 也用 OpenAI 兼容协议暴露出来，所以不用单独去配 Anthropic 那一格，一栏搞定所有模型。</p>
+<p>进到「设置 → AI 服务商 → OpenAI」（或者「语言模型」里对应的 OpenAI 兼容项），按这几个字段填：</p>
+<ul>
+<li><strong>API Key</strong>：中转后台申请到的那串密钥，一个 Key 通吃多个模型。</li>
+<li><strong>接口代理地址（Base URL / API 地址）</strong>：填 <code>https://www.kingflow.ai/v1</code>。这一步最关键，很多人漏填代理地址，请求就默默发去官方域名了，自然连不上。</li>
+<li><strong>模型列表</strong>：把要用的模型名手动加进去。我常开的是 <code>claude-opus-4-8</code>（旗舰，大重构、长上下文推理都靠它）、<code>claude-sonnet-4-6</code>（日常均衡款）、<code>claude-haiku-4-5</code>（高频、便宜、跑批量小任务）。需要 GPT 侧就再加 <code>gpt-5.5</code>、<code>gpt-5.4</code>，甚至 <code>deepseek-v4</code>、<code>glm-5.1</code> 也能一并加上。</li>
+</ul>
+<p>填完先点「检查连接 / 获取模型列表」验证一下。返回正常、模型能拉出来，就说明地址和 Key 都对了。</p>
+<p>如果你更喜欢命令行先摸一把再进界面，可以先用 cURL 探一下端点通不通：</p>
+<pre><code class="language-bash">curl https://www.kingflow.ai/v1/chat/completions \
+  -H &quot;Authorization: Bearer $OPENAI_API_KEY&quot; \
+  -H &quot;Content-Type: application/json&quot; \
+  -d '{
+    &quot;model&quot;: &quot;claude-opus-4-8&quot;,
+    &quot;messages&quot;: [{&quot;role&quot;: &quot;user&quot;, &quot;content&quot;: &quot;用一句话介绍你自己&quot;}]
+  }'
+</code></pre>
+<p>能拿到正常回包，再回 LobeChat 里填，心里就有底了。</p>
+<h2>三、自部署 vs 在线版：填法差异</h2>
+<p>这两种用法在「填哪里」上其实有点不一样，我分开说，省得来回踩坑。</p>
+<p><strong>在线版（lobehub 官方托管）</strong>：不用自己装，直接浏览器打开注册就能用。所有配置都存在「设置」里，接口地址、Key、模型都在界面上填。优点是零维护、随开随用；缺点是配置跟着账号走，Key 存在人家那边，介意的话就别在在线版填敏感 Key。适合先快速试水。</p>
+<p><strong>自部署（Docker / Docker Compose）</strong>：这是我长期在用的方式。除了在界面上填，还可以在启动时用环境变量把接口预置好，团队里发一套镜像大家开箱即用。关键的两个变量：</p>
+<pre><code class="language-bash"># docker-compose 里或 docker run -e 传入
+OPENAI_API_KEY=你的KingFlow密钥
+OPENAI_PROXY_URL=https://www.kingflow.ai/v1
+</code></pre>
+<p><code>OPENAI_PROXY_URL</code> 就对应界面里那个「接口代理地址」。用环境变量预置的好处是：容器一起来，OpenAI 兼容这一路就通了，不用每个人再去界面里手填一遍。要限定前端只暴露某几个模型，还可以配 <code>OPENAI_MODEL_LIST</code> 把清单锁死。</p>
+<p>一句话总结差异：<strong>在线版靠界面填、图省事；自部署可以靠环境变量批量预置、图可控</strong>。两者填的值是一样的（同一个地址、同一个 Key），只是入口不同。</p>
+<h2>四、多模型 / 多助手的玩法</h2>
+<p>接通之后，LobeChat 真正好玩的地方才开始。我平时是这么分工的：</p>
+<ul>
+<li><strong>建多个助手</strong>：一个「代码助手」绑 <code>claude-opus-4-8</code>，专门啃复杂重构；一个「日常问答」绑 <code>claude-sonnet-4-6</code>，速度快又够聪明；一个「批量小工」绑 <code>claude-haiku-4-5</code> 或 <code>glm-5.1-flash</code>，跑翻译、摘要这类量大活轻的任务，省钱。</li>
+<li><strong>同一话题横向对比</strong>：遇到拿不准的方案，我会在几个模型间切一圈，看谁的思路更对路。因为是一个 Key 一个地址，切模型只是下拉框一选，没有任何额外配置成本。</li>
+<li><strong>插件配强模型</strong>：联网、执行这类插件要跑 Function Calling，我一般让它挂在 Claude 旗舰或 GPT 高配上，工具调用的稳定性明显更好。</li>
+<li><strong>知识库挂检索</strong>：把项目文档丢进知识库，配一个专门的助手，问需求、查接口都直接在对话里搞定。</li>
+</ul>
+<p>整套下来，模型选型这件事被「一个 Key 多模型」彻底抹平了——你不再需要为每家厂商各维护一套密钥和地址。</p>
+<h2>五、为什么我最后选了 KingFlow</h2>
+<p>换过几家之后留在 KingFlow，理由挺实在：</p>
+<ul>
+<li><strong>国内直连</strong>：国内节点，首字延迟我这边实测通常在一两秒的量级，比自己挂代理绕美区那种动辄几十秒稳太多了。LobeChat 这种交互式聊天，延迟高一点体验就崩，直连是刚需。</li>
+<li><strong>一个 Key 多模型</strong>：Claude 三档、GPT 系、DeepSeek、GLM、通义、Kimi 这些都能路由，改 model 就切，不用一家家配。上面第四节那套多助手玩法，全靠这个撑着。</li>
+<li><strong>走官方协议、模型不掉包</strong>：接口按官方规范转发，模型该是哪个就是哪个，不会拿小模型冒充旗舰。这点对经常跑大任务的人很重要。</li>
+<li><strong>用量透明、支付省心</strong>：后台能查调用明细和 token 用量，方便对账；人民币小额充值、新人注册一般送点额度，先测后充，不用一上来就掏大钱。</li>
+</ul>
+<p>配合 LobeChat，基本就是「填一个地址 + 一个 Key，所有模型全通」的体验，维护成本几乎为零。</p>
+<h2>六、常见问题 FAQ</h2>
+<p><strong>Q1：接口代理地址到底填 <code>https://www.kingflow.ai</code> 还是带 <code>/v1</code>？</strong>
+走 OpenAI 兼容这一栏，填带 <code>/v1</code> 的 <code>https://www.kingflow.ai/v1</code>。LobeChat 会在这个基础上拼 <code>/chat/completions</code> 等路径，漏了 <code>/v1</code> 容易 404。</p>
+<p><strong>Q2：模型列表里 Claude 模型拉不出来怎么办？</strong>
+LobeChat 的自动获取有时只回一部分，直接在模型设置里手动新增 <code>claude-opus-4-8</code>、<code>claude-sonnet-4-6</code>、<code>claude-haiku-4-5</code> 这些名字即可，手填的照样能用。</p>
+<p><strong>Q3：插件 / 联网搜索没反应？</strong>
+插件依赖 Function Calling，先确认当前助手绑的是支持工具调用的模型（Claude 旗舰或 GPT 高配比较稳），再检查该插件本身是否已启用。别拿只做纯聊天的低配模型去跑插件。</p>
+<p><strong>Q4：自部署好还是在线版好？</strong>
+只是自己随手用、想快速试，就上在线版，界面填完就跑。要团队共用、想把 Key 和模型清单预置进容器、对数据存放位置有要求，就 Docker 自部署，用环境变量统一管理更省心。两者填的地址和 Key 完全一样。</p>
+<hr />
+<p>到这一步，LobeChat 就从一个空壳变成了能同时驱动 Claude、GPT、国产模型的多模型工作台。核心其实就一句话：把接口代理地址指到 <code>https://www.kingflow.ai/v1</code>，填上 Key，剩下的交给 LobeChat 去发挥。</p>
+</article>
+</main>
+<footer class="site-footer">
+  <p><strong>KingFlow</strong> · 国内直连、稳定低延迟的 Claude / GPT API 中转平台</p>
+  <p>官网：<a href="https://www.kingflow.ai" rel="noopener">www.kingflow.ai</a> ｜ 支持 Claude Code · OpenAI Codex · 全系 Claude / GPT 模型</p>
+  <p class="muted">© 2026 KingFlow. 本站为 KingFlow 中转方案与配置教程合集。</p>
+</footer>
+</body>
+</html>
