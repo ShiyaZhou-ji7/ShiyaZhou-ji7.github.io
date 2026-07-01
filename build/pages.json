@@ -15,6 +15,12 @@
       "nav": "LobeChat接入",
       "title": "LobeChat 接入 Claude 中转 API 实战（自部署/在线版） | KingFlow",
       "desc": "LobeChat 接入 Claude 中转 API 实战（自部署/在线版）。KingFlow 国内直连、一个 Key 多模型、人民币充值、倍率透明，改一行 Base URL 即可接入。"
+    },
+    {
+      "slug": "claude-proxy-payment",
+      "nav": "充值支付",
+      "title": "Claude 中转站怎么充值：微信、支付宝与对公发票 | KingFlow",
+      "desc": "Claude 中转站怎么充值：微信、支付宝与对公发票。KingFlow 国内直连、一个 Key 多模型、人民币充值、倍率透明，改一行 Base URL 即可接入。"
     }
   ]
 }
